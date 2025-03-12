@@ -24,7 +24,6 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
 var argv = require('yargs')
     .usage('Usage: $0 [OPTION] FILE [OUTPUT]')
     .example(
@@ -53,12 +52,16 @@ var concat = require('concat-stream');
 var gm = require('gm').subClass({ imageMagick: true });
 var smartcrop = require('smartcrop-gm');
 var _ = require('underscore');
-
-var cv;
+var faceapi;
 
 if (argv.faceDetection) {
   try {
-    cv = require('opencv');
+    var tf = require('@tensorflow/tfjs-node');
+    faceapi = require('face-api.js');
+    var { Canvas, Image, ImageData } = require('canvas');
+    faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+    var path = require('path');
+    var fs = require('fs');
   } catch (e) {
     console.error(e);
     console.error('skipping faceDetection');
@@ -91,26 +94,39 @@ function resize(result) {
   }
 }
 
-function faceDetect(input, options) {
-  return new Promise(function(resolve, reject) {
-    if (!argv.faceDetection) return resolve(false);
-    cv.readImage(input, function(err, image) {
-      if (err) return reject(err);
-      image.detectObject(cv.FACE_CASCADE, {}, function(err, faces) {
-        if (err) return reject(err);
-        options.boost = faces.map(function(face) {
-          return {
-            x: face.x,
-            y: face.y,
-            width: face.width,
-            height: face.height,
-            weight: 1.0
-          };
-        });
-        resolve(true);
-      });
+async function faceDetect(input, options) {
+  if (!argv.faceDetection) return false;
+  try {
+    // Load face-api.js models
+    await faceapi.nets.ssdMobilenetv1.loadFromDisk(path.join(__dirname, 'models'));
+
+    // Read the image file
+    const imgBuffer = await fs.promises.readFile(input);
+    const image = new Image();
+
+    // Wait for the image to load
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = imgBuffer;
     });
-  });
+
+    // Detect faces
+    const detections = await faceapi.detectAllFaces(image);
+
+    // Map results to expected format
+    options.boost = detections.map(det => ({
+      x: det.box.x,
+      y: det.box.y,
+      width: det.box.width,
+      height: det.box.height,
+      weight: 1.0
+    }));
+
+    return true;
+  } catch (err) {
+    throw err;
+  }
 }
 
 function analyse() {

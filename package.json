@@ -17,14 +17,15 @@
     "url": "https://github.com/jwagner/smartcrop-cli.git"
   },
   "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-node": "^4.22.0",
+    "canvas": "^3.1.0",
     "concat-stream": "^1.6.2",
+    "face-api.js": "^0.22.2",
     "gm": "^1.23.1",
     "smartcrop-gm": "~1.0.1",
     "underscore": "~1.6.0",
     "yargs": "~1.2.1"
-  },
-  "optionalDependencies": {
-    "opencv": "^6.0.0"
   },
   "devDependencies": {
     "eslint": "^4.19.1",

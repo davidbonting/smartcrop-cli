@@ -98,7 +98,7 @@ async function faceDetect(input, options) {
   if (!argv.faceDetection) return false;
   try {
     // Load face-api.js models
-    await faceapi.nets.ssdMobilenetv1.loadFromDisk(path.join(__dirname, 'models'));
+    await faceapi.nets.tinyFaceDetector.loadFromDisk(path.join(__dirname, 'models'));
 
     // Read the image file
     const imgBuffer = await fs.promises.readFile(input);
@@ -111,8 +111,8 @@ async function faceDetect(input, options) {
       image.src = imgBuffer;
     });
 
-    // Detect faces
-    const detections = await faceapi.detectAllFaces(image);
+    // Detect faces using TinyFaceDetector
+    const detections = await faceapi.detectAllFaces(image, new faceapi.TinyFaceDetectorOptions());
 
     // Map results to expected format
     options.boost = detections.map(det => ({
@@ -125,7 +125,8 @@ async function faceDetect(input, options) {
 
     return true;
   } catch (err) {
-    throw err;
+    console.error('Face detection failed:', err);
+    return false;
   }
 }
 
